@@ -71,6 +71,9 @@ import static com.android.internal.telephony.RILConstants.RIL_UNSOL_UNTHROTTLE_A
 import static com.android.internal.telephony.RILConstants.RIL_UNSOL_VOICE_RADIO_TECH_CHANGED;
 import static com.android.internal.telephony.RILConstants.RIL_UNSOl_CDMA_PRL_CHANGED;
 
+import android.app.ActivityThread;
+import android.content.Context;
+import android.content.Intent;
 import android.hardware.radio.V1_0.CdmaCallWaiting;
 import android.hardware.radio.V1_0.CdmaInformationRecord;
 import android.hardware.radio.V1_0.CdmaLineControlInfoRecord;
@@ -127,9 +130,11 @@ import java.util.UUID;
 
 public class RadioIndication extends IRadioIndication.Stub {
     RIL mRil;
+    Context mContext;
 
     RadioIndication(RIL ril) {
         mRil = ril;
+        mContext = ActivityThread.currentApplication().getApplicationContext();
     }
 
     /**
@@ -145,6 +150,13 @@ public class RadioIndication extends IRadioIndication.Stub {
             mRil.unsljLogMore(RIL_UNSOL_RESPONSE_RADIO_STATE_CHANGED, "radioStateChanged: " +
                     state);
         }
+
+        Integer mPhoneId = -1;
+        Intent intent = new Intent(TelephonyIntents.ACTION_RADIO_STATE_CHANGED);
+        intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT);
+        intent.putExtra(PhoneConstants.STATE_KEY,
+                (state == TelephonyManager.RADIO_POWER_UNAVAILABLE) ? "off" : "on");
+        IntentBroadcaster.getInstance(mContext).broadcastStickyIntent(mContext, intent, mPhoneId);
 
         mRil.setRadioState(state, false /* forceNotifyRegistrants */);
     }
